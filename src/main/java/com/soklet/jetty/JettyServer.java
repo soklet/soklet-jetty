@@ -25,6 +25,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -66,11 +67,13 @@ public class JettyServer implements Server {
 
   @Override
   public void start() throws ServerException {
-    logger.info(format("Starting server on %s:%d...", jettyServerConfiguration().host(), jettyServerConfiguration()
-      .port()));
+    if (logger.isLoggable(Level.INFO))
+      logger.info(format("Starting server on %s:%d...", jettyServerConfiguration().host(), jettyServerConfiguration()
+        .port()));
 
     try {
       server.start();
+      logger.info("Server started.");
     } catch (Exception e) {
       throw new ServerException("Unable to start server", e);
     }
