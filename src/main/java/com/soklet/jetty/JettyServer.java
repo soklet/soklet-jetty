@@ -17,6 +17,7 @@
 package com.soklet.jetty;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
@@ -48,6 +49,7 @@ import com.soklet.web.server.FilterConfiguration;
 import com.soklet.web.server.Server;
 import com.soklet.web.server.ServerException;
 import com.soklet.web.server.ServletConfiguration;
+import com.soklet.web.server.StaticFilesConfiguration;
 
 /**
  * A <a href="http://eclipse.org/jetty">Jetty</a>-backed implementation of {@link Server}.
@@ -56,20 +58,81 @@ import com.soklet.web.server.ServletConfiguration;
  * @since 1.0.0
  */
 public class JettyServer implements Server {
-  private final JettyServerConfiguration jettyServerConfiguration;
+  private final InstanceProvider instanceProvider;
+  private final String host;
+  private final int port;
+  private final Optional<StaticFilesConfiguration> staticFilesConfiguration;
+  private List<FilterConfiguration> filterConfigurations;
+  private List<ServletConfiguration> servletConfigurations;
   private final org.eclipse.jetty.server.Server server;
   private final Logger logger = Logger.getLogger(getClass().getName());
 
-  public JettyServer(JettyServerConfiguration jettyServerConfiguration) {
-    this.jettyServerConfiguration = requireNonNull(jettyServerConfiguration);
-    this.server = createServer(jettyServerConfiguration);
+  protected JettyServer(Builder builder) {
+    requireNonNull(builder);
+    this.instanceProvider = builder.instanceProvider;
+    this.host = builder.host;
+    this.port = builder.port;
+    this.staticFilesConfiguration = Optional.ofNullable(builder.staticFilesConfiguration);
+    this.filterConfigurations = builder.filterConfigurations;
+    this.servletConfigurations = builder.servletConfigurations;
+    this.server = createServer();
+  }
+
+  public static Builder forInstanceProvider(InstanceProvider instanceProvider) {
+    requireNonNull(instanceProvider);
+    return new Builder(instanceProvider);
+  }
+
+  public static class Builder {
+    private final InstanceProvider instanceProvider;
+    private String host;
+    private int port;
+    private StaticFilesConfiguration staticFilesConfiguration;
+    private List<FilterConfiguration> filterConfigurations;
+    private List<ServletConfiguration> servletConfigurations;
+
+    private Builder(InstanceProvider instanceProvider) {
+      this.instanceProvider = requireNonNull(instanceProvider);
+      this.host = "0.0.0.0";
+      this.port = 8888;
+      this.filterConfigurations = emptyList();
+      this.servletConfigurations = emptyList();
+    }
+
+    public Builder host(String host) {
+      this.host = requireNonNull(host);
+      return this;
+    }
+
+    public Builder port(int port) {
+      this.port = port;
+      return this;
+    }
+
+    public Builder staticFilesConfiguration(StaticFilesConfiguration staticFilesConfiguration) {
+      this.staticFilesConfiguration = requireNonNull(staticFilesConfiguration);
+      return this;
+    }
+
+    public Builder filterConfigurations(List<FilterConfiguration> filterConfigurations) {
+      this.filterConfigurations = requireNonNull(filterConfigurations);
+      return this;
+    }
+
+    public Builder servletConfigurations(List<ServletConfiguration> servletConfigurations) {
+      this.servletConfigurations = requireNonNull(servletConfigurations);
+      return this;
+    }
+
+    public JettyServer build() {
+      return new JettyServer(this);
+    }
   }
 
   @Override
   public void start() throws ServerException {
     if (logger.isLoggable(Level.INFO))
-      logger.info(format("Starting server on %s:%d...", jettyServerConfiguration().host(), jettyServerConfiguration()
-        .port()));
+      logger.info(format("Starting server on %s:%d...", host(), port()));
 
     try {
       server.start();
@@ -91,37 +154,33 @@ public class JettyServer implements Server {
     }
   }
 
-  protected org.eclipse.jetty.server.Server createServer(JettyServerConfiguration jettyServerConfiguration) {
-    requireNonNull(jettyServerConfiguration);
-
-    InstanceProvider instanceProvider = jettyServerConfiguration().instanceProvider();
+  protected org.eclipse.jetty.server.Server createServer() {
+    InstanceProvider instanceProvider = instanceProvider();
     org.eclipse.jetty.server.Server server = new org.eclipse.jetty.server.Server();
 
-    WebAppContext webAppContext = createWebAppContext(jettyServerConfiguration);
+    WebAppContext webAppContext = createWebAppContext();
 
-    installFilters(jettyServerConfiguration.filterConfigurations(), instanceProvider, webAppContext);
+    installFilters(filterConfigurations(), instanceProvider, webAppContext);
 
-    List<ServletConfiguration> servletConfigurations =
-        new ArrayList<>(jettyServerConfiguration.servletConfigurations());
+    List<ServletConfiguration> servletConfigurations = new ArrayList<>(servletConfigurations());
 
     // Add the routing servlet
     servletConfigurations.add(new ServletConfiguration(RoutingServlet.class, "/*"));
 
     // Add the static file servlet
-    if (jettyServerConfiguration.staticFilesConfiguration().isPresent())
-      servletConfigurations.add(new ServletConfiguration(DefaultServlet.class, jettyServerConfiguration
-        .staticFilesConfiguration().get().urlPattern(), new HashMap<String, String>() {
+    if (staticFilesConfiguration().isPresent())
+      servletConfigurations.add(new ServletConfiguration(DefaultServlet.class, staticFilesConfiguration().get()
+        .urlPattern(), new HashMap<String, String>() {
         {
-          put("resourceBase", jettyServerConfiguration.staticFilesConfiguration().get().rootDirectory()
-            .toAbsolutePath().toString());
+          put("resourceBase", staticFilesConfiguration().get().rootDirectory().toAbsolutePath().toString());
         }
       }));
 
     installServlets(servletConfigurations, instanceProvider, webAppContext);
 
     ServerConnector serverConnector = new ServerConnector(server);
-    serverConnector.setHost(jettyServerConfiguration().host());
-    serverConnector.setPort(jettyServerConfiguration().port());
+    serverConnector.setHost(host());
+    serverConnector.setPort(port());
 
     HandlerList handlers = new HandlerList();
     handlers.setHandlers(new Handler[] { webAppContext });
@@ -132,9 +191,7 @@ public class JettyServer implements Server {
     return server;
   }
 
-  protected WebAppContext createWebAppContext(JettyServerConfiguration jettyServerConfiguration) {
-    requireNonNull(jettyServerConfiguration);
-
+  protected WebAppContext createWebAppContext() {
     WebAppContext webAppContext = new WebAppContext();
     webAppContext.setContextPath("/");
     webAppContext.setWar("/");
@@ -144,8 +201,8 @@ public class JettyServer implements Server {
       public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
           throws IOException {
         // Special handling for 404s from static file servlet
-        if (response.getStatus() == 404 && jettyServerConfiguration.staticFilesConfiguration().isPresent()) {
-          ResponseHandler responseHandler = jettyServerConfiguration.instanceProvider().provide(ResponseHandler.class);
+        if (response.getStatus() == 404 && staticFilesConfiguration().isPresent()) {
+          ResponseHandler responseHandler = instanceProvider().provide(ResponseHandler.class);
           responseHandler.handleResponse(request, response, Optional.empty(), Optional.empty(), Optional.empty());
         } else {
           // If it's not a 404 from the static file servlet, fall back to the default handling
@@ -188,7 +245,27 @@ public class JettyServer implements Server {
     }
   }
 
-  protected JettyServerConfiguration jettyServerConfiguration() {
-    return jettyServerConfiguration;
+  public InstanceProvider instanceProvider() {
+    return instanceProvider;
+  }
+
+  public String host() {
+    return host;
+  }
+
+  public int port() {
+    return port;
+  }
+
+  public Optional<StaticFilesConfiguration> staticFilesConfiguration() {
+    return staticFilesConfiguration;
+  }
+
+  public List<FilterConfiguration> filterConfigurations() {
+    return filterConfigurations;
+  }
+
+  public List<ServletConfiguration> servletConfigurations() {
+    return servletConfigurations;
   }
 }

@@ -42,7 +42,7 @@ class AppModule extends AbstractModule {
   @Singleton
   public Server provideServer(InstanceProvider instanceProvider) {
     // We'll have Jetty be our Soklet server
-    return new JettyServer(JettyServerConfiguration.builder(instanceProvider).port(8080).build());
+    return JettyServer.forInstanceProvider(instanceProvider).port(8080).build();
   }
 }
 ```
