@@ -43,8 +43,8 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 import com.soklet.util.InstanceProvider;
-import com.soklet.web.ResponseHandler;
-import com.soklet.web.RoutingServlet;
+import com.soklet.web.response.ResponseHandler;
+import com.soklet.web.routing.RoutingServlet;
 import com.soklet.web.server.FilterConfiguration;
 import com.soklet.web.server.Server;
 import com.soklet.web.server.ServerException;
