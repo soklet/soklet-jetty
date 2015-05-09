@@ -65,7 +65,7 @@ public class JettyServer implements Server {
   private List<FilterConfiguration> filterConfigurations;
   private List<ServletConfiguration> servletConfigurations;
   private final org.eclipse.jetty.server.Server server;
-  private final Logger logger = Logger.getLogger(getClass().getName());
+  private final Logger logger = Logger.getLogger(JettyServer.class.getName());
 
   protected JettyServer(Builder builder) {
     requireNonNull(builder);
