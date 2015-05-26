@@ -44,3 +44,7 @@ class AppModule extends AbstractModule {
   }
 }
 ```
+
+## About
+
+Soklet Jetty was created by [Mark Allen](http://revetkn.com) and sponsored by [Transmogrify, LLC.](http://xmog.com)
