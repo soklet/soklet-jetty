@@ -65,6 +65,8 @@ public class JettyServer implements Server {
   private List<FilterConfiguration> filterConfigurations;
   private List<ServletConfiguration> servletConfigurations;
   private final org.eclipse.jetty.server.Server server;
+  private boolean running;
+  private final Object lifecycleLock = new Object();
   private final Logger logger = Logger.getLogger(JettyServer.class.getName());
 
   protected JettyServer(Builder builder) {
@@ -131,26 +133,46 @@ public class JettyServer implements Server {
 
   @Override
   public void start() throws ServerException {
-    if (logger.isLoggable(Level.INFO))
-      logger.info(format("Starting server on %s:%d...", host(), port()));
+    synchronized (lifecycleLock) {
+      if (isRunning())
+        throw new ServerException("Server is already running");
 
-    try {
-      server.start();
-      logger.info("Server started.");
-    } catch (Exception e) {
-      throw new ServerException("Unable to start server", e);
+      if (logger.isLoggable(Level.INFO))
+        logger.info(format("Starting server on %s:%d...", host(), port()));
+
+      try {
+        server.start();
+        this.running = true;
+        logger.info("Server started.");
+      } catch (Exception e) {
+        throw new ServerException("Unable to start server", e);
+      }
     }
   }
 
   @Override
   public void stop() throws ServerException {
-    logger.info("Stopping server...");
+    synchronized (lifecycleLock) {
+      if (!isRunning())
+        throw new ServerException("Server is already stopped");
 
-    try {
-      server.stop();
-      logger.info("Server stopped.");
-    } catch (Exception e) {
-      throw new ServerException("An error occurred while stopping server", e);
+      logger.info("Stopping server...");
+
+      try {
+        server.stop();
+        logger.info("Server stopped.");
+      } catch (Exception e) {
+        throw new ServerException("An error occurred while stopping server", e);
+      } finally {
+        this.running = false;
+      }
+    }
+  }
+
+  @Override
+  public boolean isRunning() {
+    synchronized (lifecycleLock) {
+      return this.running;
     }
   }
 

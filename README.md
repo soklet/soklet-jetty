@@ -14,13 +14,13 @@
 <dependency>
   <groupId>com.soklet</groupId>
   <artifactId>soklet-jetty</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 
 #### Direct Download
 
-If you don't use Maven, you can drop [soklet-jetty-1.0.0.jar](http://central.maven.org/maven2/com/soklet/soklet-jetty/1.0.0/soklet-jetty-1.0.0.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
+If you don't use Maven, you can drop [soklet-jetty-1.0.1.jar](http://central.maven.org/maven2/com/soklet/soklet-jetty/1.0.1/soklet-jetty-1.0.1.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
 
 ## Example Code
 
@@ -29,9 +29,11 @@ If you don't use Maven, you can drop [soklet-jetty-1.0.0.jar](http://central.mav
 public static void main(String[] args) throws Exception {
   Injector injector = createInjector(Modules.override(new SokletModule()).with(new AppModule()));
   Server server = injector.getInstance(Server.class);
-  server.start();
-  System.in.read(); // Wait for keypress
-  server.stop();
+
+  // Start the server
+  new ServerLauncher(server).launch(StoppingStrategy.ON_KEYPRESS, () -> {
+    // Some custom on-server-shutdown code here, if needed
+  });
 }
 
 class AppModule extends AbstractModule {
