@@ -47,7 +47,7 @@ class AppModule extends AbstractModule {
 }
 ```
 
-See [http://soklet.com](http://soklet.com) for complete documentation of server configuration options.
+See the [Soklet website](http://soklet.com) for complete documentation of server configuration options.
 
 ## About
 
