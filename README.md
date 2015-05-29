@@ -14,13 +14,13 @@
 <dependency>
   <groupId>com.soklet</groupId>
   <artifactId>soklet-jetty</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
 </dependency>
 ```
 
 #### Direct Download
 
-If you don't use Maven, you can drop [soklet-jetty-1.0.1.jar](http://central.maven.org/maven2/com/soklet/soklet-jetty/1.0.1/soklet-jetty-1.0.1.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
+If you don't use Maven, you can drop [soklet-jetty-1.0.2.jar](http://central.maven.org/maven2/com/soklet/soklet-jetty/1.0.2/soklet-jetty-1.0.2.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
 
 ## Example Code
 
@@ -46,6 +46,8 @@ class AppModule extends AbstractModule {
   }
 }
 ```
+
+See [http://soklet.com](http://soklet.com) for complete documentation of server configuration options.
 
 ## About
 

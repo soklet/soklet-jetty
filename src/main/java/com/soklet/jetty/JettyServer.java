@@ -23,15 +23,18 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.eclipse.jetty.http.HttpContent;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.ServerConnector;
@@ -40,6 +43,7 @@ import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 import com.soklet.util.InstanceProvider;
@@ -50,6 +54,7 @@ import com.soklet.web.server.Server;
 import com.soklet.web.server.ServerException;
 import com.soklet.web.server.ServletConfiguration;
 import com.soklet.web.server.StaticFilesConfiguration;
+import com.soklet.web.server.StaticFilesConfiguration.CacheStrategy;
 
 /**
  * A <a href="http://eclipse.org/jetty">Jetty</a>-backed implementation of {@link Server}.
@@ -191,10 +196,11 @@ public class JettyServer implements Server {
 
     // Add the static file servlet
     if (staticFilesConfiguration().isPresent())
-      servletConfigurations.add(new ServletConfiguration(DefaultServlet.class, staticFilesConfiguration().get()
+      servletConfigurations.add(new ServletConfiguration(SokletDefaultServlet.class, staticFilesConfiguration().get()
         .urlPattern(), new HashMap<String, String>() {
         {
           put("resourceBase", staticFilesConfiguration().get().rootDirectory().toAbsolutePath().toString());
+          put(SokletDefaultServlet.CACHE_STRATEGY_PARAM, staticFilesConfiguration.get().cacheStrategy().name());
         }
       }));
 
@@ -211,6 +217,34 @@ public class JettyServer implements Server {
     server.addConnector(serverConnector);
 
     return server;
+  }
+
+  protected static class SokletDefaultServlet extends DefaultServlet {
+    static final String CACHE_STRATEGY_PARAM = format("%s.%s", SokletDefaultServlet.class.getSimpleName(),
+      CacheStrategy.class.getSimpleName());
+
+    private CacheStrategy cacheStrategy;
+
+    @Override
+    public void init() throws UnavailableException {
+      super.init();
+      this.cacheStrategy = CacheStrategy.valueOf(getInitParameter(CACHE_STRATEGY_PARAM));
+    }
+
+    @Override
+    protected void sendData(HttpServletRequest request, HttpServletResponse response, boolean include,
+        Resource resource, HttpContent content, Enumeration<String> reqRanges) throws IOException {
+
+      if (this.cacheStrategy == CacheStrategy.FOREVER) {
+        response.setHeader("Cache-Control", "max-age=31536000");
+      } else if (this.cacheStrategy == CacheStrategy.NEVER) {
+        response.setHeader("Cache-Control", "no-cache, must-revalidate");
+        response.setHeader("Expires", "0");
+        response.setHeader("Pragma", "no-cache");
+      }
+
+      super.sendData(request, response, include, resource, content, reqRanges);
+    }
   }
 
   protected WebAppContext createWebAppContext() {
