@@ -47,6 +47,7 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 import com.soklet.util.InstanceProvider;
+import com.soklet.web.request.RequestFilter;
 import com.soklet.web.response.ResponseHandler;
 import com.soklet.web.routing.RoutingServlet;
 import com.soklet.web.server.FilterConfiguration;
@@ -187,17 +188,27 @@ public class JettyServer implements Server {
 
     WebAppContext webAppContext = createWebAppContext();
 
-    installFilters(filterConfigurations(), instanceProvider, webAppContext);
+    List<FilterConfiguration> filterConfigurations = new ArrayList<>(filterConfigurations());
+
+    // Add the request filter
+    filterConfigurations.add(0, new FilterConfiguration(RequestFilter.class, "/*", new HashMap<String, String>() {
+      {
+        put(RequestFilter.STATIC_FILES_URL_PATTERN_PARAM,
+          staticFilesConfiguration.isPresent() ? staticFilesConfiguration.get().urlPattern() : null);
+      }
+    }));
+
+    installFilters(filterConfigurations, instanceProvider, webAppContext);
 
     List<ServletConfiguration> servletConfigurations = new ArrayList<>(servletConfigurations());
 
     // Add the routing servlet
-    servletConfigurations.add(new ServletConfiguration(RoutingServlet.class, "/*"));
+    servletConfigurations.add(0, new ServletConfiguration(RoutingServlet.class, "/*"));
 
     // Add the static file servlet
     if (staticFilesConfiguration().isPresent())
-      servletConfigurations.add(new ServletConfiguration(SokletDefaultServlet.class, staticFilesConfiguration().get()
-        .urlPattern(), new HashMap<String, String>() {
+      servletConfigurations.add(0, new ServletConfiguration(SokletDefaultServlet.class, staticFilesConfiguration()
+        .get().urlPattern(), new HashMap<String, String>() {
         {
           put("resourceBase", staticFilesConfiguration().get().rootDirectory().toAbsolutePath().toString());
           put(SokletDefaultServlet.CACHE_STRATEGY_PARAM, staticFilesConfiguration.get().cacheStrategy().name());
@@ -220,8 +231,7 @@ public class JettyServer implements Server {
   }
 
   protected static class SokletDefaultServlet extends DefaultServlet {
-    static final String CACHE_STRATEGY_PARAM = format("%s.%s", SokletDefaultServlet.class.getSimpleName(),
-      CacheStrategy.class.getSimpleName());
+    static final String CACHE_STRATEGY_PARAM = "CACHE_STRATEGY";
 
     private CacheStrategy cacheStrategy;
 
