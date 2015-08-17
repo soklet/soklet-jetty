@@ -47,7 +47,8 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 import com.soklet.util.InstanceProvider;
-import com.soklet.web.request.RequestFilter;
+import com.soklet.web.request.FirstFilter;
+import com.soklet.web.request.LastFilter;
 import com.soklet.web.response.ResponseHandler;
 import com.soklet.web.routing.RoutingServlet;
 import com.soklet.web.server.FilterConfiguration;
@@ -140,11 +141,9 @@ public class JettyServer implements Server {
   @Override
   public void start() throws ServerException {
     synchronized (lifecycleLock) {
-      if (isRunning())
-        throw new ServerException("Server is already running");
+      if (isRunning()) throw new ServerException("Server is already running");
 
-      if (logger.isLoggable(Level.INFO))
-        logger.info(format("Starting server on %s:%d...", host(), port()));
+      if (logger.isLoggable(Level.INFO)) logger.info(format("Starting server on %s:%d...", host(), port()));
 
       try {
         server.start();
@@ -159,8 +158,7 @@ public class JettyServer implements Server {
   @Override
   public void stop() throws ServerException {
     synchronized (lifecycleLock) {
-      if (!isRunning())
-        throw new ServerException("Server is already stopped");
+      if (!isRunning()) throw new ServerException("Server is already stopped");
 
       logger.info("Stopping server...");
 
@@ -190,13 +188,16 @@ public class JettyServer implements Server {
 
     List<FilterConfiguration> filterConfigurations = new ArrayList<>(filterConfigurations());
 
-    // Add the request filter
-    filterConfigurations.add(0, new FilterConfiguration(RequestFilter.class, "/*", new HashMap<String, String>() {
+    // Put FirstFilter at the front of the list...
+    filterConfigurations.add(0, new FilterConfiguration(FirstFilter.class, "/*", new HashMap<String, String>() {
       {
-        put(RequestFilter.STATIC_FILES_URL_PATTERN_PARAM,
-          staticFilesConfiguration.isPresent() ? staticFilesConfiguration.get().urlPattern() : null);
+        put(FirstFilter.STATIC_FILES_URL_PATTERN_PARAM, staticFilesConfiguration.isPresent() ? staticFilesConfiguration
+          .get().urlPattern() : null);
       }
     }));
+
+    // ...and LastFilter at the back
+    filterConfigurations.add(new FilterConfiguration(LastFilter.class, "/*"));
 
     installFilters(filterConfigurations, instanceProvider, webAppContext);
 
