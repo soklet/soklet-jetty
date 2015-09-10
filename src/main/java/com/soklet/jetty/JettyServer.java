@@ -22,11 +22,14 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,6 +38,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.jetty.http.HttpContent;
+import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.ServerConnector;
@@ -69,8 +73,10 @@ public class JettyServer implements Server {
   private final String host;
   private final int port;
   private final Optional<StaticFilesConfiguration> staticFilesConfiguration;
-  private List<FilterConfiguration> filterConfigurations;
-  private List<ServletConfiguration> servletConfigurations;
+  private final List<FilterConfiguration> filterConfigurations;
+  private final List<ServletConfiguration> servletConfigurations;
+  private final HandlerConfigurationFunction handlerConfigurationFunction;
+  private final ConnectorConfigurationFunction connectorConfigurationFunction;
   private final org.eclipse.jetty.server.Server server;
   private boolean running;
   private final Object lifecycleLock = new Object();
@@ -84,6 +90,8 @@ public class JettyServer implements Server {
     this.staticFilesConfiguration = Optional.ofNullable(builder.staticFilesConfiguration);
     this.filterConfigurations = builder.filterConfigurations;
     this.servletConfigurations = builder.servletConfigurations;
+    this.handlerConfigurationFunction = builder.handlerConfigurationFunction;
+    this.connectorConfigurationFunction = builder.connectorConfigurationFunction;
     this.server = createServer();
   }
 
@@ -99,6 +107,8 @@ public class JettyServer implements Server {
     private StaticFilesConfiguration staticFilesConfiguration;
     private List<FilterConfiguration> filterConfigurations;
     private List<ServletConfiguration> servletConfigurations;
+    private HandlerConfigurationFunction handlerConfigurationFunction;
+    private ConnectorConfigurationFunction connectorConfigurationFunction;
 
     private Builder(InstanceProvider instanceProvider) {
       this.instanceProvider = requireNonNull(instanceProvider);
@@ -106,6 +116,8 @@ public class JettyServer implements Server {
       this.port = 8888;
       this.filterConfigurations = emptyList();
       this.servletConfigurations = emptyList();
+      this.handlerConfigurationFunction = (server, handlers) -> handlers;
+      this.connectorConfigurationFunction = (server, connectors) -> connectors;
     }
 
     public Builder host(String host) {
@@ -130,6 +142,16 @@ public class JettyServer implements Server {
 
     public Builder servletConfigurations(List<ServletConfiguration> servletConfigurations) {
       this.servletConfigurations = requireNonNull(servletConfigurations);
+      return this;
+    }
+
+    public Builder handlerConfigurationFunction(HandlerConfigurationFunction handlerConfigurationFunction) {
+      this.handlerConfigurationFunction = requireNonNull(handlerConfigurationFunction);
+      return this;
+    }
+
+    public Builder connectorConfigurationFunction(ConnectorConfigurationFunction connectorConfigurationFunction) {
+      this.connectorConfigurationFunction = requireNonNull(connectorConfigurationFunction);
       return this;
     }
 
@@ -223,10 +245,12 @@ public class JettyServer implements Server {
     serverConnector.setPort(port());
 
     HandlerList handlers = new HandlerList();
-    handlers.setHandlers(new Handler[] { webAppContext });
+    handlers.setHandlers(handlerConfigurationFunction.apply(server, Arrays.asList(new Handler[] { webAppContext }))
+      .toArray(new Handler[0]));
 
     server.setHandler(handlers);
-    server.addConnector(serverConnector);
+    server.setConnectors(connectorConfigurationFunction.apply(server, Collections.singletonList(serverConnector))
+      .toArray(new Connector[0]));
 
     return server;
   }
@@ -335,4 +359,12 @@ public class JettyServer implements Server {
   public List<ServletConfiguration> servletConfigurations() {
     return servletConfigurations;
   }
+
+  @FunctionalInterface
+  public interface HandlerConfigurationFunction extends
+      BiFunction<org.eclipse.jetty.server.Server, List<Handler>, List<Handler>> {}
+
+  @FunctionalInterface
+  public interface ConnectorConfigurationFunction extends
+      BiFunction<org.eclipse.jetty.server.Server, List<Connector>, List<Connector>> {}
 }
