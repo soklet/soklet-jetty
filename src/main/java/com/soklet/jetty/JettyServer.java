@@ -267,8 +267,11 @@ public class JettyServer implements Server {
     }
 
     @Override
-    protected void sendData(HttpServletRequest request, HttpServletResponse response, boolean include,
-        Resource resource, HttpContent content, Enumeration<String> reqRanges) throws IOException {
+    protected boolean sendData(HttpServletRequest request,
+                            HttpServletResponse response,
+                            boolean include,
+                            final HttpContent content,
+                            Enumeration<String> reqRanges) throws IOException {
 
       if (this.cacheStrategy == CacheStrategy.FOREVER) {
         response.setHeader("Cache-Control", "max-age=31536000");
@@ -278,7 +281,7 @@ public class JettyServer implements Server {
         response.setHeader("Pragma", "no-cache");
       }
 
-      super.sendData(request, response, include, resource, content, reqRanges);
+      return super.sendData(request, response, include, content, reqRanges);
     }
   }
 
