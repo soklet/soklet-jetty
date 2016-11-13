@@ -276,7 +276,7 @@ public class JettyServer implements Server {
       if (this.cacheStrategy == CacheStrategy.FOREVER) {
         response.setHeader("Cache-Control", "max-age=31536000");
       } else if (this.cacheStrategy == CacheStrategy.NEVER) {
-        response.setHeader("Cache-Control", "no-cache, must-revalidate");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         response.setHeader("Expires", "0");
         response.setHeader("Pragma", "no-cache");
       }
