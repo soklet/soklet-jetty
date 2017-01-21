@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -77,6 +78,7 @@ public class JettyServer implements Server {
   private final List<ServletConfiguration> servletConfigurations;
   private final HandlerConfigurationFunction handlerConfigurationFunction;
   private final ConnectorConfigurationFunction connectorConfigurationFunction;
+  private final Consumer<WebAppContext> webAppContextConfigurationFunction;
   private final org.eclipse.jetty.server.Server server;
   private boolean running;
   private final Object lifecycleLock = new Object();
@@ -92,6 +94,7 @@ public class JettyServer implements Server {
     this.servletConfigurations = builder.servletConfigurations;
     this.handlerConfigurationFunction = builder.handlerConfigurationFunction;
     this.connectorConfigurationFunction = builder.connectorConfigurationFunction;
+    this.webAppContextConfigurationFunction = builder.webAppContextConfigurationFunction;
     this.server = createServer();
   }
 
@@ -109,6 +112,7 @@ public class JettyServer implements Server {
     private List<ServletConfiguration> servletConfigurations;
     private HandlerConfigurationFunction handlerConfigurationFunction;
     private ConnectorConfigurationFunction connectorConfigurationFunction;
+    private Consumer<WebAppContext> webAppContextConfigurationFunction;
 
     private Builder(InstanceProvider instanceProvider) {
       this.instanceProvider = requireNonNull(instanceProvider);
@@ -118,6 +122,7 @@ public class JettyServer implements Server {
       this.servletConfigurations = emptyList();
       this.handlerConfigurationFunction = (server, handlers) -> handlers;
       this.connectorConfigurationFunction = (server, connectors) -> connectors;
+      this.webAppContextConfigurationFunction = (webAppContext) -> {};
     }
 
     public Builder host(String host) {
@@ -152,6 +157,11 @@ public class JettyServer implements Server {
 
     public Builder connectorConfigurationFunction(ConnectorConfigurationFunction connectorConfigurationFunction) {
       this.connectorConfigurationFunction = requireNonNull(connectorConfigurationFunction);
+      return this;
+    }
+
+    public Builder webAppContextConfigurationFunction(Consumer<WebAppContext>  webAppContextConfigurationFunction) {
+      this.webAppContextConfigurationFunction = webAppContextConfigurationFunction;
       return this;
     }
 
@@ -251,6 +261,8 @@ public class JettyServer implements Server {
     server.setHandler(handlers);
     server.setConnectors(connectorConfigurationFunction.apply(server, Collections.singletonList(serverConnector))
       .toArray(new Connector[0]));
+
+    webAppContextConfigurationFunction.accept(webAppContext);
 
     return server;
   }
