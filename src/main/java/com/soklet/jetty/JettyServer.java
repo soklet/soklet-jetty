@@ -37,7 +37,10 @@ import java.util.logging.Logger;
 import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.websocket.server.ServerEndpoint;
+import javax.websocket.server.ServerEndpointConfig;
 
+import com.soklet.web.server.*;
 import org.eclipse.jetty.http.HttpContent;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -56,16 +59,13 @@ import com.soklet.web.request.FirstFilter;
 import com.soklet.web.request.LastFilter;
 import com.soklet.web.response.ResponseHandler;
 import com.soklet.web.routing.RoutingServlet;
-import com.soklet.web.server.FilterConfiguration;
-import com.soklet.web.server.Server;
-import com.soklet.web.server.ServerException;
-import com.soklet.web.server.ServletConfiguration;
-import com.soklet.web.server.StaticFilesConfiguration;
 import com.soklet.web.server.StaticFilesConfiguration.CacheStrategy;
+import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
+import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 
 /**
  * A <a href="http://eclipse.org/jetty">Jetty</a>-backed implementation of {@link Server}.
- * 
+ *
  * @author <a href="http://revetkn.com">Mark Allen</a>
  * @since 1.0.0
  */
@@ -76,6 +76,7 @@ public class JettyServer implements Server {
   private final Optional<StaticFilesConfiguration> staticFilesConfiguration;
   private final List<FilterConfiguration> filterConfigurations;
   private final List<ServletConfiguration> servletConfigurations;
+  private final List<WebSocketConfiguration> webSocketConfigurations;
   private final HandlerConfigurationFunction handlerConfigurationFunction;
   private final ConnectorConfigurationFunction connectorConfigurationFunction;
   private final Consumer<WebAppContext> webAppContextConfigurationFunction;
@@ -90,8 +91,9 @@ public class JettyServer implements Server {
     this.host = builder.host;
     this.port = builder.port;
     this.staticFilesConfiguration = Optional.ofNullable(builder.staticFilesConfiguration);
-    this.filterConfigurations = builder.filterConfigurations;
-    this.servletConfigurations = builder.servletConfigurations;
+    this.filterConfigurations = Collections.unmodifiableList(builder.filterConfigurations);
+    this.servletConfigurations = Collections.unmodifiableList(builder.servletConfigurations);
+    this.webSocketConfigurations = Collections.unmodifiableList(builder.webSocketConfigurations);
     this.handlerConfigurationFunction = builder.handlerConfigurationFunction;
     this.connectorConfigurationFunction = builder.connectorConfigurationFunction;
     this.webAppContextConfigurationFunction = builder.webAppContextConfigurationFunction;
@@ -110,6 +112,7 @@ public class JettyServer implements Server {
     private StaticFilesConfiguration staticFilesConfiguration;
     private List<FilterConfiguration> filterConfigurations;
     private List<ServletConfiguration> servletConfigurations;
+    private List<WebSocketConfiguration> webSocketConfigurations;
     private HandlerConfigurationFunction handlerConfigurationFunction;
     private ConnectorConfigurationFunction connectorConfigurationFunction;
     private Consumer<WebAppContext> webAppContextConfigurationFunction;
@@ -120,6 +123,7 @@ public class JettyServer implements Server {
       this.port = 8888;
       this.filterConfigurations = emptyList();
       this.servletConfigurations = emptyList();
+      this.webSocketConfigurations = emptyList();
       this.handlerConfigurationFunction = (server, handlers) -> handlers;
       this.connectorConfigurationFunction = (server, connectors) -> connectors;
       this.webAppContextConfigurationFunction = (webAppContext) -> {};
@@ -147,6 +151,11 @@ public class JettyServer implements Server {
 
     public Builder servletConfigurations(List<ServletConfiguration> servletConfigurations) {
       this.servletConfigurations = requireNonNull(servletConfigurations);
+      return this;
+    }
+
+    public Builder webSocketConfigurations(List<WebSocketConfiguration> webSocketConfigurations) {
+      this.webSocketConfigurations = requireNonNull(webSocketConfigurations);
       return this;
     }
 
@@ -262,6 +271,8 @@ public class JettyServer implements Server {
     server.setConnectors(connectorConfigurationFunction.apply(server, Collections.singletonList(serverConnector))
       .toArray(new Connector[0]));
 
+    installWebSockets(webSocketConfigurations, instanceProvider, webAppContext);
+
     webAppContextConfigurationFunction.accept(webAppContext);
 
     return server;
@@ -351,6 +362,36 @@ public class JettyServer implements Server {
     }
   }
 
+  protected void installWebSockets(List<WebSocketConfiguration> webSocketConfigurations, InstanceProvider instanceProvider,
+                                 WebAppContext webAppContext) {
+    requireNonNull(webSocketConfigurations);
+    requireNonNull(instanceProvider);
+    requireNonNull(webAppContext);
+
+    if(webSocketConfigurations.size() == 0)
+      return;
+
+    try {
+			ServerContainer serverContainer = WebSocketServerContainerInitializer.configureContext(webAppContext);
+
+			for (WebSocketConfiguration webSocketConfiguration : webSocketConfigurations) {
+				String url = webSocketConfiguration.url().orElse(webSocketConfiguration.webSocketClass().getAnnotation(ServerEndpoint.class).value());
+				ServerEndpointConfig serverEndpointConfig = ServerEndpointConfig.Builder.create(webSocketConfiguration.webSocketClass(), url)
+						.configurator(new ServerEndpointConfig.Configurator() {
+							@Override
+							public <T> T getEndpointInstance(Class<T> endpointClass) throws InstantiationException {
+								return (T) instanceProvider.provide(webSocketConfiguration.webSocketClass());
+							}
+						})
+						.build();
+
+				serverContainer.addEndpoint(serverEndpointConfig);
+			}
+		} catch(Exception e) {
+    	throw new RuntimeException("Unable to initialize WebSockets", e);
+		}
+  }
+
   public InstanceProvider instanceProvider() {
     return instanceProvider;
   }
@@ -374,6 +415,10 @@ public class JettyServer implements Server {
   public List<ServletConfiguration> servletConfigurations() {
     return servletConfigurations;
   }
+
+	public List<WebSocketConfiguration> webSocketConfigurations() {
+		return webSocketConfigurations;
+	}
 
   @FunctionalInterface
   public interface HandlerConfigurationFunction extends
