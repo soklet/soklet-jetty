@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.soklet</groupId>
 	<artifactId>soklet-jetty</artifactId>
-	<version>1.0.12</version>
+	<version>1.0.13</version>
 	<packaging>jar</packaging>
 	<name>Soklet Jetty</name>
 	<description>Jetty integration for Soklet, a minimalist infrastructure for Java webapps and microservices.</description>
@@ -141,32 +141,32 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
-			<version>9.3.14.v20161028</version>
+			<version>9.4.5.v20170502</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-webapp</artifactId>
-			<version>9.3.14.v20161028</version>
+			<version>9.4.5.v20170502</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-servlets</artifactId>
-			<version>9.3.14.v20161028</version>
+			<version>9.4.5.v20170502</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-continuation</artifactId>
-			<version>9.3.14.v20161028</version>
+			<version>9.4.5.v20170502</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-io</artifactId>
-			<version>9.3.14.v20161028</version>
+			<version>9.4.5.v20170502</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty.websocket</groupId>
 			<artifactId>javax-websocket-server-impl</artifactId>
-			<version>9.3.14.v20161028</version>
+			<version>9.4.5.v20170502</version>
 		</dependency>
 
 		<!-- Test dependencies -->
