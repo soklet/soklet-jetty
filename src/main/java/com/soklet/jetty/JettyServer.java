@@ -34,6 +34,7 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.ServletException;
 import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -290,12 +291,7 @@ public class JettyServer implements Server {
     }
 
     @Override
-    protected boolean sendData(HttpServletRequest request,
-                            HttpServletResponse response,
-                            boolean include,
-                            final HttpContent content,
-                            Enumeration<String> reqRanges) throws IOException {
-
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
       if (this.cacheStrategy == CacheStrategy.FOREVER) {
         response.setHeader("Cache-Control", "max-age=31536000");
       } else if (this.cacheStrategy == CacheStrategy.NEVER) {
@@ -304,7 +300,7 @@ public class JettyServer implements Server {
         response.setHeader("Pragma", "no-cache");
       }
 
-      return super.sendData(request, response, include, content, reqRanges);
+      super.doGet(request, response);
     }
   }
 
