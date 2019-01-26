@@ -14,13 +14,13 @@
 <dependency>
   <groupId>com.soklet</groupId>
   <artifactId>soklet-jetty</artifactId>
-  <version>1.0.13</version>
+  <version>1.0.14</version>
 </dependency>
 ```
 
 #### Direct Download
 
-If you don't use Maven, you can drop [soklet-jetty-1.0.13.jar](http://central.maven.org/maven2/com/soklet/soklet-jetty/1.0.13/soklet-jetty-1.0.13.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
+If you don't use Maven, you can drop [soklet-jetty-1.0.14.jar](http://central.maven.org/maven2/com/soklet/soklet-jetty/1.0.13/soklet-jetty-1.0.13.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
 
 ## Example Code
 
