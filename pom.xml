@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.soklet</groupId>
 	<artifactId>soklet-jetty</artifactId>
-	<version>1.0.14</version>
+	<version>1.0.15</version>
 	<packaging>jar</packaging>
 	<name>Soklet Jetty</name>
 	<description>Jetty integration for Soklet, a minimalist infrastructure for Java webapps and microservices.</description>
@@ -78,10 +78,11 @@
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>2.10.2</version>
 				<configuration>
+					<source>1.8</source>
 					<links>
 						<link>https://docs.oracle.com/javase/8/docs/api/</link>
 						<link>http://docs.oracle.com/javaee/7/api/</link>
-						<link>http://download.eclipse.org/jetty/stable-9/apidocs/</link>
+						<link>https://www.eclipse.org/jetty/javadoc/9.4.19.v20190610/</link>
 					</links>
 					<show>public</show>
 					<failOnError>true</failOnError>
@@ -141,32 +142,32 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
-			<version>9.4.14.v20181114</version>
+			<version>9.4.19.v20190610</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-webapp</artifactId>
-			<version>9.4.14.v20181114</version>
+			<version>9.4.19.v20190610</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-servlets</artifactId>
-			<version>9.4.14.v20181114</version>
+			<version>9.4.19.v20190610</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-continuation</artifactId>
-			<version>9.4.14.v20181114</version>
+			<version>9.4.19.v20190610</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-io</artifactId>
-			<version>9.4.14.v20181114</version>
+			<version>9.4.19.v20190610</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty.websocket</groupId>
 			<artifactId>javax-websocket-server-impl</artifactId>
-			<version>9.4.14.v20181114</version>
+			<version>9.4.19.v20190610</version>
 		</dependency>
 
 		<!-- Test dependencies -->
