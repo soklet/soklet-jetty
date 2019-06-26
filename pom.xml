@@ -78,10 +78,11 @@
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>2.10.2</version>
 				<configuration>
+					<source>1.8</source>
 					<links>
 						<link>https://docs.oracle.com/javase/8/docs/api/</link>
 						<link>http://docs.oracle.com/javaee/7/api/</link>
-						<link>http://download.eclipse.org/jetty/stable-9/apidocs/</link>
+						<link>https://www.eclipse.org/jetty/javadoc/9.4.19.v20190610/</link>
 					</links>
 					<show>public</show>
 					<failOnError>true</failOnError>
