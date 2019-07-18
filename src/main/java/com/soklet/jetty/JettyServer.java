@@ -53,8 +53,8 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 import com.soklet.util.InstanceProvider;
-import com.soklet.web.request.FirstFilter;
-import com.soklet.web.request.LastFilter;
+import com.soklet.web.request.SokletFilter;
+import com.soklet.web.request.RequestContextSyncFilter;
 import com.soklet.web.response.ResponseHandler;
 import com.soklet.web.routing.RoutingServlet;
 import com.soklet.web.server.StaticFilesConfiguration.CacheStrategy;
@@ -227,16 +227,16 @@ public class JettyServer implements Server {
 
     List<FilterConfiguration> filterConfigurations = new ArrayList<>(filterConfigurations());
 
-    // Put FirstFilter at the front of the list...
-    filterConfigurations.add(0, new FilterConfiguration(FirstFilter.class, "/*", new HashMap<String, String>() {
+    // Put SokletFilter at the front of the list...
+    filterConfigurations.add(0, new FilterConfiguration(SokletFilter.class, "/*", new HashMap<String, String>() {
       {
-        put(FirstFilter.STATIC_FILES_URL_PATTERN_PARAM, staticFilesConfiguration.isPresent() ? staticFilesConfiguration
+        put(SokletFilter.STATIC_FILES_URL_PATTERN_PARAM, staticFilesConfiguration.isPresent() ? staticFilesConfiguration
           .get().urlPattern() : null);
       }
     }));
 
-    // ...and LastFilter at the back
-    filterConfigurations.add(new FilterConfiguration(LastFilter.class, "/*"));
+    // ...and RequestContextSyncFilter at the back
+    filterConfigurations.add(new FilterConfiguration(RequestContextSyncFilter.class, "/*"));
 
     installFilters(filterConfigurations, instanceProvider, webAppContext);
 
