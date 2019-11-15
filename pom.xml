@@ -82,7 +82,7 @@
 					<links>
 						<link>https://docs.oracle.com/javase/8/docs/api/</link>
 						<link>http://docs.oracle.com/javaee/7/api/</link>
-						<link>https://www.eclipse.org/jetty/javadoc/9.4.19.v20190610/</link>
+						<link>https://www.eclipse.org/jetty/javadoc/9.4.22.v20191022/</link>
 					</links>
 					<show>public</show>
 					<failOnError>true</failOnError>
@@ -142,32 +142,32 @@
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
-			<version>9.4.19.v20190610</version>
+			<version>9.4.22.v20191022</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-webapp</artifactId>
-			<version>9.4.19.v20190610</version>
+			<version>9.4.22.v20191022</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-servlets</artifactId>
-			<version>9.4.19.v20190610</version>
+			<version>9.4.22.v20191022</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-continuation</artifactId>
-			<version>9.4.19.v20190610</version>
+			<version>9.4.22.v20191022</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-io</artifactId>
-			<version>9.4.19.v20190610</version>
+			<version>9.4.22.v20191022</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty.websocket</groupId>
 			<artifactId>javax-websocket-server-impl</artifactId>
-			<version>9.4.19.v20190610</version>
+			<version>9.4.22.v20191022</version>
 		</dependency>
 
 		<!-- Test dependencies -->
