@@ -16,10 +16,35 @@
 
 package com.soklet.jetty;
 
-import static java.lang.String.format;
-import static java.util.Collections.emptyList;
-import static java.util.Objects.requireNonNull;
+import com.soklet.util.InstanceProvider;
+import com.soklet.web.request.RequestContextSyncFilter;
+import com.soklet.web.request.SokletFilter;
+import com.soklet.web.response.ResponseHandler;
+import com.soklet.web.routing.RoutingServlet;
+import com.soklet.web.server.FilterConfiguration;
+import com.soklet.web.server.Server;
+import com.soklet.web.server.ServerException;
+import com.soklet.web.server.ServletConfiguration;
+import com.soklet.web.server.StaticFilesConfiguration;
+import com.soklet.web.server.StaticFilesConfiguration.CacheStrategy;
+import com.soklet.web.server.WebSocketConfiguration;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.ErrorHandler;
+import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.servlet.DefaultServlet;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
 
+import javax.servlet.ServletException;
+import javax.servlet.UnavailableException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,33 +58,9 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletException;
-import javax.servlet.UnavailableException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.websocket.server.ServerEndpoint;
-import javax.websocket.server.ServerEndpointConfig;
-
-import com.soklet.web.server.*;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.handler.ErrorHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.webapp.WebAppContext;
-
-import com.soklet.util.InstanceProvider;
-import com.soklet.web.request.SokletFilter;
-import com.soklet.web.request.RequestContextSyncFilter;
-import com.soklet.web.response.ResponseHandler;
-import com.soklet.web.routing.RoutingServlet;
-import com.soklet.web.server.StaticFilesConfiguration.CacheStrategy;
-import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
-import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
+import static java.lang.String.format;
+import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 
 /**
  * A <a href="http://eclipse.org/jetty">Jetty</a>-backed implementation of {@link Server}.
@@ -262,14 +263,15 @@ public class JettyServer implements Server {
     serverConnector.setPort(port());
 
     HandlerList handlers = new HandlerList();
-    handlers.setHandlers(handlerConfigurationFunction.apply(server, Arrays.asList(new Handler[] { webAppContext }))
-      .toArray(new Handler[0]));
+    handlers.setHandlers(handlerConfigurationFunction.apply(server, Arrays.asList(new Handler[] { webAppContext })).toArray(new Handler[0]));
 
     server.setHandler(handlers);
     server.setConnectors(connectorConfigurationFunction.apply(server, Collections.singletonList(serverConnector))
       .toArray(new Connector[0]));
 
     installWebSockets(webSocketConfigurations, instanceProvider, webAppContext);
+
+
 
     webAppContextConfigurationFunction.accept(webAppContext);
 
@@ -316,7 +318,13 @@ public class JettyServer implements Server {
           responseHandler.handleResponse(request, response, Optional.empty(), Optional.empty(), Optional.empty());
         } else {
           // If it's not a 404 from the static file servlet, fall back to the default handling
-          super.handle(target, baseRequest, request, response);
+          try {
+            super.handle(target, baseRequest, request, response);
+          } catch(ServletException e) {
+            // Ultimate fallback
+            ResponseHandler responseHandler = instanceProvider().provide(ResponseHandler.class);
+            responseHandler.handleResponse(request, response, Optional.empty(), Optional.empty(), Optional.empty());
+          }
         }
       }
     });
@@ -365,24 +373,17 @@ public class JettyServer implements Server {
       return;
 
     try {
-			ServerContainer serverContainer = WebSocketServerContainerInitializer.configureContext(webAppContext);
-
-			for (WebSocketConfiguration webSocketConfiguration : webSocketConfigurations) {
-				String url = webSocketConfiguration.url().orElse(webSocketConfiguration.webSocketClass().getAnnotation(ServerEndpoint.class).value());
-				ServerEndpointConfig serverEndpointConfig = ServerEndpointConfig.Builder.create(webSocketConfiguration.webSocketClass(), url)
-						.configurator(new ServerEndpointConfig.Configurator() {
-							@Override
-							public <T> T getEndpointInstance(Class<T> endpointClass) throws InstantiationException {
-								return (T) instanceProvider.provide(webSocketConfiguration.webSocketClass());
-							}
-						})
-						.build();
-
-				serverContainer.addEndpoint(serverEndpointConfig);
-			}
-		} catch(Exception e) {
-    	throw new RuntimeException("Unable to initialize WebSockets", e);
-		}
+      JettyWebSocketServletContainerInitializer.configure(webAppContext, (servletContext, jettyWebSocketServerContainer) -> {
+        for (WebSocketConfiguration webSocketConfiguration : webSocketConfigurations) {
+          String url = webSocketConfiguration.url().orElse(webSocketConfiguration.webSocketClass().getAnnotation(ServerEndpoint.class).value());
+          jettyWebSocketServerContainer.addMapping(url, (jettyServerUpgradeRequest, jettyServerUpgradeResponse) -> {
+            return instanceProvider.provide(webSocketConfiguration.webSocketClass());
+          });
+        }
+      });
+    } catch(Exception e) {
+      throw new RuntimeException("Unable to initialize WebSockets", e);
+    }
   }
 
   public InstanceProvider instanceProvider() {
