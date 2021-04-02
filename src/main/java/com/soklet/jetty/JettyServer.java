@@ -38,13 +38,14 @@ import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
-import org.eclipse.jetty.websocket.server.config.JettyWebSocketServletContainerInitializer;
+import org.eclipse.jetty.websocket.javax.server.config.JavaxWebSocketServletContainerInitializer;
 
 import javax.servlet.ServletException;
 import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.websocket.server.ServerEndpoint;
+import javax.websocket.server.ServerEndpointConfig;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -373,14 +374,34 @@ public class JettyServer implements Server {
       return;
 
     try {
-      JettyWebSocketServletContainerInitializer.configure(webAppContext, (servletContext, jettyWebSocketServerContainer) -> {
+      JavaxWebSocketServletContainerInitializer.configure(webAppContext, (servletContext, serverContainer) -> {
         for (WebSocketConfiguration webSocketConfiguration : webSocketConfigurations) {
           String url = webSocketConfiguration.url().orElse(webSocketConfiguration.webSocketClass().getAnnotation(ServerEndpoint.class).value());
-          jettyWebSocketServerContainer.addMapping(url, (jettyServerUpgradeRequest, jettyServerUpgradeResponse) -> {
-            return instanceProvider.provide(webSocketConfiguration.webSocketClass());
-          });
+          ServerEndpointConfig serverEndpointConfig = ServerEndpointConfig.Builder.create(webSocketConfiguration.webSocketClass(), url)
+              .configurator(new ServerEndpointConfig.Configurator() {
+                @Override
+                public <T> T getEndpointInstance(Class<T> endpointClass) throws InstantiationException {
+                  return (T) instanceProvider.provide(webSocketConfiguration.webSocketClass());
+                }
+              })
+              .build();
+
+          serverContainer.addEndpoint(serverEndpointConfig);
         }
       });
+
+      // TODO: add support for Jetty native WebSockets eventually
+      // Client code would need to use @OnWebSocketConnect and friends instead of the JSR-356 @OnConnect and friends
+      //
+      // JettyWebSocketServletContainerInitializer.configure(webAppContext, (servletContext, jettyWebSocketServerContainer) -> {
+      //   for (WebSocketConfiguration webSocketConfiguration : webSocketConfigurations) {
+      //     String url = webSocketConfiguration.url().orElse(webSocketConfiguration.webSocketClass().getAnnotation(ServerEndpoint.class).value());
+      //     jettyWebSocketServerContainer.addMapping(url, (jettyServerUpgradeRequest, jettyServerUpgradeResponse) -> {
+      //       System.out.println("JETTY INSTANCE " + webSocketConfiguration.webSocketClass());
+      //       return instanceProvider.provide(webSocketConfiguration.webSocketClass());
+      //     });
+      //   }
+      // });
     } catch(Exception e) {
       throw new RuntimeException("Unable to initialize WebSockets", e);
     }
