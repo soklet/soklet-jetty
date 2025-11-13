@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.soklet</groupId>
 	<artifactId>soklet-jetty</artifactId>
-	<version>1.0.18-SNAPSHOT</version>
+	<version>1.0.18</version>
 	<packaging>jar</packaging>
 	<name>Soklet Jetty</name>
 	<description>Jetty integration for Soklet, a minimalist infrastructure for Java webapps and microservices.</description>
