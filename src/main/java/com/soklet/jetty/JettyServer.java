@@ -316,7 +316,11 @@ public class JettyServer implements Server {
           responseHandler.handleResponse(request, response, Optional.empty(), Optional.empty(), Optional.empty());
         } else {
           // If it's not a 404 from the static file servlet, fall back to the default handling
-          super.handle(target, baseRequest, request, response);
+          try {
+            super.handle(target, baseRequest, request, response);
+          } catch(ServletException e) {
+            throw new RuntimeException(e);
+          }
         }
       }
     });
