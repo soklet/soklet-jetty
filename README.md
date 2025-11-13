@@ -20,7 +20,7 @@
 
 #### Direct Download
 
-If you don't use Maven, you can drop [soklet-jetty-1.0.18.jar](http://central.maven.org/maven2/com/soklet/soklet-jetty/1.0.18/soklet-jetty-1.0.18.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
+If you don't use Maven, you can drop [soklet-jetty-1.0.18.jar](https://repo1.maven.org/maven2/com/soklet/soklet-jetty/1.0.18/soklet-jetty-1.0.18.jar) directly into your project.  You'll also need [Jetty 9](http://download.eclipse.org/jetty/stable-9/dist/) as a dependency.
 
 ## Example Code
 
