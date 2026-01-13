@@ -1,3 +1,16 @@
+# ⚠️ Project Retired
+
+This repository is **will no longer be maintained except for critical security fixes** and should not be used for new development.
+
+It is superseded by [Soklet 2.0.0](https://www.soklet.com), which no longer uses embedded Jetty.
+
+- No new features or bug fixes will be made except for critical security fixes
+- Issues and pull requests are not monitored
+- The repository is kept for historical reference only
+
+**Replacement:** https://github.com/soklet/soklet  
+**Final release:** 1.0.18 (November 13, 2025)
+
 ## Soklet Jetty
 
 #### What Is It?
