@@ -1,6 +1,6 @@
 # ⚠️ Project Retired
 
-This repository is **will no longer be maintained except for critical security fixes** and should not be used for new development.
+This repository **will no longer be maintained except for critical security fixes** and should not be used for new development.
 
 It is superseded by [Soklet 2.0.0](https://www.soklet.com), which no longer uses embedded Jetty.
 
